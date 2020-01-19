@@ -28,7 +28,7 @@ impl Vec3 {
         Vec3::new(
             self.y * v.z - self.z * v.y,
             self.z * v.x - self.x * v.z,
-            self.x * v.y - self.y * v.z,
+            self.x * v.y - self.y * v.x,
         )
     }
 

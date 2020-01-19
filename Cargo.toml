@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Rinik Kumar <rk9109@gmail.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 rand = "0.7.3"
+getopts = "0.2.0"
+indicatif = "0.13.0"
