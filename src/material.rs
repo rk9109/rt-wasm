@@ -47,6 +47,7 @@ pub trait Material {
     fn scatter(&self, r: &Ray, record: &IntersectRecord) -> Option<(Ray, Vec3)>;
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct Lambertian {
     pub albedo: Vec3,
 }
@@ -67,6 +68,7 @@ impl Material for Lambertian {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct Metal {
     pub fuzz: f64,
     pub albedo: Vec3,
@@ -94,14 +96,16 @@ impl Material for Metal {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct Dielectric {
     pub ri: f64,
+    pub fuzz: f64,
     pub albedo: Vec3,
 }
 
 impl Dielectric {
-    pub fn new(ri: f64, albedo: Vec3) -> Dielectric {
-        Dielectric { ri, albedo }
+    pub fn new(ri: f64, fuzz: f64, albedo: Vec3) -> Dielectric {
+        Dielectric { ri, fuzz, albedo }
     }
 }
 
@@ -130,12 +134,13 @@ impl Material for Dielectric {
         if let Some(refracted) = refract(r.direction, outward_normal, ni_over_nt) {
             let reflect_prob = schlick(cos, self.ri);
             if rand::thread_rng().gen::<f64>() >= reflect_prob {
-                let scattered = Ray::new(record.p, refracted);
+                let scattered =
+                    Ray::new(record.p, refracted + random_point_in_sphere() * self.fuzz);
                 return Some((scattered, attenuation));
             }
         }
         let reflected = reflect(r.direction.unit(), record.normal);
-        let scattered = Ray::new(record.p, reflected);
+        let scattered = Ray::new(record.p, reflected + random_point_in_sphere() * self.fuzz);
         Some((scattered, attenuation))
     }
 }

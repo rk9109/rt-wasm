@@ -1,6 +1,7 @@
 use std::env;
 use std::f64;
 use std::fs;
+use std::time;
 
 use getopts::Options;
 use indicatif::ProgressBar;
@@ -91,6 +92,73 @@ fn parse_args() -> Option<(u64, u64, u64, String)> {
     Some((nx, ny, ns, output))
 }
 
+fn create_scene() -> IntersectList {
+    let mut list: Vec<Box<dyn IntersectEvent>> = vec![];
+
+    // material options
+    let ground = Lambertian::new(Vec3::new(0.35, 0.35, 0.45));
+    let pink = Lambertian::new(Vec3::new(0.8, 0.4, 0.4));
+    let gold = Metal::new(0.0, Vec3::new(1.0, 0.8, 0.4));
+    let gold_rough = Metal::new(0.25, Vec3::new(1.0, 0.8, 0.4));
+    let silver = Metal::new(0.0, Vec3::new(0.8, 0.8, 0.8));
+    let silver_rough = Metal::new(0.25, Vec3::new(0.8, 0.8, 0.8));
+    let glass = Dielectric::new(1.5, 0.0, Vec3::new(0.8, 0.8, 0.8));
+    let glass_rough = Dielectric::new(1.5, 0.15, Vec3::new(0.8, 0.8, 0.8));
+
+    // create base
+    list.push(Box::new(Sphere::new(
+        Vec3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        ground.clone(),
+    )));
+
+    // create large spheres
+    list.push(Box::new(Sphere::new(
+        Vec3::new(4.0, 0.5, 1.0),
+        0.5,
+        pink.clone(),
+    )));
+    list.push(Box::new(Sphere::new(
+        Vec3::new(3.0, 0.5, 0.25),
+        0.5,
+        silver.clone(),
+    )));
+    list.push(Box::new(Sphere::new(
+        Vec3::new(2.0, 0.5, -0.5),
+        0.5,
+        glass.clone(),
+    )));
+    list.push(Box::new(Sphere::new(
+        Vec3::new(4.0, 0.35, -1.15),
+        0.35,
+        gold.clone(),
+    )));
+
+    // create small spheres
+    list.push(Box::new(Sphere::new(
+        Vec3::new(5.0, 0.20, -0.8),
+        0.20,
+        glass_rough.clone(),
+    )));
+    list.push(Box::new(Sphere::new(
+        Vec3::new(4.2, 0.20, -0.6),
+        0.20,
+        glass_rough.clone(),
+    )));
+    list.push(Box::new(Sphere::new(
+        Vec3::new(5.4, 0.20, 0.55),
+        0.20,
+        gold_rough.clone(),
+    )));
+    list.push(Box::new(Sphere::new(
+        Vec3::new(5.0, 0.20, 0.25),
+        0.20,
+        silver_rough.clone(),
+    )));
+
+    IntersectList::new(list)
+}
+
 fn main() {
     // parse command-line arguments
     let (nx, ny, ns, output) = match parse_args() {
@@ -105,45 +173,24 @@ fn main() {
     let mut rng = rand::thread_rng();
 
     // initialize world
-    let world = IntersectList::new(vec![
-        Box::new(Sphere::new(
-            Vec3::new(0.0, 0.0, -1.0),
-            0.5,
-            Lambertian::new(Vec3::new(0.2, 0.2, 0.6)),
-        )),
-        Box::new(Sphere::new(
-            Vec3::new(0.0, -100.5, -1.0),
-            100.0,
-            Lambertian::new(Vec3::new(0.8, 0.8, 0.0)),
-        )),
-        Box::new(Sphere::new(
-            Vec3::new(1.0, 0.0, -1.0),
-            0.5,
-            Metal::new(0.2, Vec3::new(0.8, 0.6, 0.2)),
-        )),
-        Box::new(Sphere::new(
-            Vec3::new(-1.0, 0.0, -1.0),
-            0.5,
-            Dielectric::new(1.5, Vec3::new(1.0, 1.0, 1.0)),
-        )),
-        Box::new(Sphere::new(
-            Vec3::new(-1.0, 0.0, -1.0),
-            0.45,
-            Dielectric::new(1.5, Vec3::new(1.0, 1.0, 1.0)),
-        )),
-    ]);
+    let world = create_scene();
 
     // initialize the camera
     let cam = Camera::new(
-        Vec3::new(-2.0, 2.0, 1.0),
-        Vec3::new(0.0, 0.0, -1.0),
+        Vec3::new(10.0, 1.0, 0.0),
+        Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 1.0, 0.0),
-        25.0,
+        17.5,
         nx as f64 / ny as f64,
+        0.1,
+        Vec3::new(5.5, 1.0, 0.0).length(),
     );
 
     // initialize progress bar
     let pb = ProgressBar::new(nx * ny);
+
+    // initialize timer
+    let start = time::Instant::now();
 
     for j in (0..ny).rev() {
         for i in 0..nx {
@@ -168,4 +215,13 @@ fn main() {
     fs::write(output, &ppm).expect("ppm error");
 
     pb.finish_and_clear();
+
+    // print elapsed time
+    let end = time::Instant::now();
+    let time_secs = (end - start).as_secs();
+    let time_millis = (end - start).subsec_millis();
+    println!(
+        "elapsed time: {}",
+        time_secs as f64 + time_millis as f64 / 1000.0
+    );
 }

@@ -1,5 +1,5 @@
 [package]
-name = "rt"
+name = "rt-wasm"
 version = "0.1.0"
 authors = ["Rinik Kumar <rk9109@gmail.com>"]
 edition = "2018"
@@ -8,3 +8,11 @@ edition = "2018"
 rand = "0.7.3"
 getopts = "0.2.0"
 indicatif = "0.13.0"
+
+[profile.dev]
+codegen-units = 8
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
