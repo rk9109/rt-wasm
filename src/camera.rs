@@ -1,4 +1,4 @@
-use std::f64;
+use std::f32;
 
 use rand::prelude::*;
 
@@ -12,7 +12,7 @@ pub fn random_point_in_disk() -> Vec3 {
     loop {
         // select random points inside the unit square until a selected point
         // is contained inside the unit circle
-        let p = Vec3::new(rng.gen::<f64>(), rng.gen::<f64>(), 0.0) * 2.0 - unit;
+        let p = Vec3::new(rng.gen::<f32>(), rng.gen::<f32>(), 0.0) * 2.0 - unit;
         if p.squared_length() < 1.0 {
             return p;
         }
@@ -26,7 +26,7 @@ pub struct Camera {
     pub vertical: Vec3,
     pub u: Vec3,
     pub v: Vec3,
-    pub radius: f64,
+    pub radius: f32,
 }
 
 impl Camera {
@@ -34,10 +34,10 @@ impl Camera {
         look_from: Vec3,
         look_to: Vec3,
         vup: Vec3,
-        vfov: f64,
-        aspect: f64,
-        aperture: f64,
-        focus_dist: f64,
+        vfov: f32,
+        aspect: f32,
+        aperture: f32,
+        focus_dist: f32,
     ) -> Camera {
         // construct camera:
         //   :look_from:  location of the camera
@@ -47,7 +47,7 @@ impl Camera {
         //   :aspect:     aspect ratio (horizontal / vertical)
         //   :aperture:   aperture size
         //   :focus_dist:
-        let theta = vfov * f64::consts::PI / 180.0;
+        let theta = vfov * f32::consts::PI / 180.0;
         let half_height = (theta / 2.0).tan();
         let half_width = aspect * half_height;
         let origin = look_from;
@@ -68,7 +68,7 @@ impl Camera {
         }
     }
 
-    pub fn point(&self, s: f64, t: f64) -> Ray {
+    pub fn point(&self, s: f32, t: f32) -> Ray {
         // return ray from the origin to coordinate (s, t)
         let rd = random_point_in_disk() * self.radius;
         let offset = self.u * rd.x + self.v * rd.y;

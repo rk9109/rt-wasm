@@ -3,14 +3,14 @@ use crate::ray::Ray;
 use crate::vec::Vec3;
 
 pub struct IntersectRecord<'a> {
-    pub t: f64,
+    pub t: f32,
     pub p: Vec3,
     pub normal: Vec3,
     pub material: &'a dyn Material,
 }
 
 impl<'a> IntersectRecord<'a> {
-    pub fn new(t: f64, p: Vec3, normal: Vec3, material: &'a dyn Material) -> IntersectRecord {
+    pub fn new(t: f32, p: Vec3, normal: Vec3, material: &'a dyn Material) -> IntersectRecord {
         // construct intersection record
         //   :t:        timestep of intersection
         //   :p:        intersection point
@@ -26,7 +26,7 @@ impl<'a> IntersectRecord<'a> {
 }
 
 pub trait IntersectEvent {
-    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<IntersectRecord>;
+    fn intersect(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<IntersectRecord>;
 }
 
 pub struct IntersectList {
@@ -41,7 +41,7 @@ impl IntersectList {
 }
 
 impl IntersectEvent for IntersectList {
-    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<IntersectRecord> {
+    fn intersect(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<IntersectRecord> {
         // return an `IntersectRecord` recording the first intersection of `r`
         // into an intersectable object in `IntersectList`
         let mut t_nearest = t_max;

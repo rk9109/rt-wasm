@@ -1,5 +1,5 @@
 use std::env;
-use std::f64;
+use std::f32;
 use std::fs;
 use std::time;
 
@@ -23,7 +23,7 @@ use vec::Vec3;
 
 fn color(r: &Ray, world: &IntersectList, depth: u16) -> Vec3 {
     // recursively trace the path of `r` as it intersects objects in `IntersectList`
-    if let Some(record) = world.intersect(r, 0.001, f64::MAX) {
+    if let Some(record) = world.intersect(r, 0.001, f32::MAX) {
         if depth < 50 {
             if let Some((scattered, attenuation)) = record.material.scatter(&r, &record) {
                 return color(&scattered, &world, depth + 1) * attenuation;
@@ -181,7 +181,7 @@ fn main() {
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 1.0, 0.0),
         17.5,
-        nx as f64 / ny as f64,
+        nx as f32 / ny as f32,
         0.1,
         Vec3::new(5.5, 1.0, 0.0).length(),
     );
@@ -197,12 +197,12 @@ fn main() {
             pb.inc(1);
             let mut pixel = Vec3::new(0.0, 0.0, 0.0);
             for _ in 0..ns {
-                let u = (i as f64 + rng.gen::<f64>()) / nx as f64;
-                let v = (j as f64 + rng.gen::<f64>()) / ny as f64;
+                let u = (i as f32 + rng.gen::<f32>()) / nx as f32;
+                let v = (j as f32 + rng.gen::<f32>()) / ny as f32;
                 let r = cam.point(u, v);
                 pixel += color(&r, &world, 0);
             }
-            pixel /= ns as f64;
+            pixel /= ns as f32;
             pixel = Vec3::new(pixel.x.sqrt(), pixel.y.sqrt(), pixel.z.sqrt());
             let ir = (255.99 * pixel.x) as i32;
             let ig = (255.99 * pixel.y) as i32;
@@ -222,6 +222,6 @@ fn main() {
     let time_millis = (end - start).subsec_millis();
     println!(
         "elapsed time: {}",
-        time_secs as f64 + time_millis as f64 / 1000.0
+        time_secs as f32 + time_millis as f32 / 1000.0
     );
 }

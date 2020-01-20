@@ -5,12 +5,12 @@ use crate::vec::Vec3;
 
 pub struct Sphere<M: Material> {
     pub center: Vec3,
-    pub radius: f64,
+    pub radius: f32,
     pub material: M,
 }
 
 impl<M: Material> Sphere<M> {
-    pub fn new(center: Vec3, radius: f64, material: M) -> Sphere<M> {
+    pub fn new(center: Vec3, radius: f32, material: M) -> Sphere<M> {
         Sphere {
             center,
             radius,
@@ -20,7 +20,7 @@ impl<M: Material> Sphere<M> {
 }
 
 impl<M: Material> IntersectEvent for Sphere<M> {
-    fn intersect(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<IntersectRecord> {
+    fn intersect(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<IntersectRecord> {
         // solution to the quadratic equation:
         //   t*t*dot(b, b)+ 2*t*dot(b, a-c) + dot(a-c, a-c) - r*r = 0
         let oc = r.origin - self.center;
