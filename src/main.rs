@@ -1,10 +1,10 @@
 use std::env;
 use std::f32;
-use std::fs;
 use std::time;
 
 use getopts::Options;
-use indicatif::ProgressBar;
+use image;
+use indicatif;
 use rand::prelude::*;
 
 mod camera;
@@ -38,7 +38,7 @@ fn color(r: &Ray, world: &IntersectList, depth: u16) -> Vec3 {
     }
 }
 
-fn parse_args() -> Option<(u64, u64, u64, String)> {
+fn parse_args() -> Option<(u32, u32, u32, String)> {
     // parse command-line arguments
     // returns:
     //   :nx:     x-dimension of image
@@ -73,7 +73,7 @@ fn parse_args() -> Option<(u64, u64, u64, String)> {
     let mut nx = 200;
     let mut ny = 100;
     let mut ns = 100;
-    let mut output = String::from("output.ppm");
+    let mut output = String::from("output.png");
 
     // parse optional options
     if matches.opt_present("x") {
@@ -166,8 +166,8 @@ fn main() {
         None => return,
     };
 
-    // initialize ppm output
-    let mut ppm = format!("P3\n{} {}\n{}\n", nx, ny, 255);
+    // initialize image
+    let mut image = Vec::with_capacity((3 * nx * ny) as usize);
 
     // initialize rng
     let mut rng = rand::thread_rng();
@@ -187,7 +187,7 @@ fn main() {
     );
 
     // initialize progress bar
-    let pb = ProgressBar::new(nx * ny);
+    let pb = indicatif::ProgressBar::new((nx * ny) as u64);
 
     // initialize timer
     let start = time::Instant::now();
@@ -203,16 +203,13 @@ fn main() {
                 pixel += color(&r, &world, 0);
             }
             pixel /= ns as f32;
-            pixel = Vec3::new(pixel.x.sqrt(), pixel.y.sqrt(), pixel.z.sqrt());
-            let ir = (255.99 * pixel.x) as i32;
-            let ig = (255.99 * pixel.y) as i32;
-            let ib = (255.99 * pixel.z) as i32;
-
-            // ppm pixel
-            ppm = format!("{}{} {} {}\n", ppm, ir, ig, ib);
+            image.push((255.99 * pixel.x.sqrt()) as u8);
+            image.push((255.99 * pixel.y.sqrt()) as u8);
+            image.push((255.99 * pixel.z.sqrt()) as u8);
         }
     }
-    fs::write(output, &ppm).expect("ppm error");
+    image::save_buffer(output, &image, nx, ny, image::RGB(8))
+        .expect("error saving image");
 
     pb.finish_and_clear();
 
