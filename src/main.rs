@@ -5,7 +5,8 @@ use std::time;
 use getopts::Options;
 use image;
 use indicatif;
-use rand::prelude::*;
+use rand::{Rng, SeedableRng};
+use rand_pcg;
 
 mod camera;
 mod intersect;
@@ -21,12 +22,12 @@ use ray::Ray;
 use sphere::Sphere;
 use vec::Vec3;
 
-fn color(r: &Ray, world: &IntersectList, depth: u16) -> Vec3 {
+fn color(r: &Ray, world: &IntersectList, depth: u16, rng: &mut rand_pcg::Pcg64) -> Vec3 {
     // recursively trace the path of `r` as it intersects objects in `IntersectList`
     if let Some(record) = world.intersect(r, 0.001, f32::MAX) {
         if depth < 50 {
-            if let Some((scattered, attenuation)) = record.material.scatter(&r, &record) {
-                return color(&scattered, &world, depth + 1) * attenuation;
+            if let Some((scattered, attenuation)) = record.material.scatter(&r, &record, rng) {
+                return color(&scattered, &world, depth + 1, rng) * attenuation;
             }
         }
         return Vec3::new(0.0, 0.0, 0.0);
@@ -38,7 +39,7 @@ fn color(r: &Ray, world: &IntersectList, depth: u16) -> Vec3 {
     }
 }
 
-fn parse_args() -> Option<(u32, u32, u32, String)> {
+fn parse_args() -> Option<(u32, u32, u32, u64, String)> {
     // parse command-line arguments
     // returns:
     //   :nx:     x-dimension of image
@@ -52,6 +53,7 @@ fn parse_args() -> Option<(u32, u32, u32, String)> {
     opts.optopt("x", "", "x resolution", "INT");
     opts.optopt("y", "", "y resolution", "INT");
     opts.optopt("s", "samples", "samples per pixel", "INT");
+    opts.optopt("r", "random", "random seed for RNG", "INT");
     opts.optopt("o", "output", "output filename", "FILE");
 
     let matches = match opts.parse(&args[1..]) {
@@ -73,6 +75,7 @@ fn parse_args() -> Option<(u32, u32, u32, String)> {
     let mut nx = 200;
     let mut ny = 100;
     let mut ns = 100;
+    let mut random_seed = 0;
     let mut output = String::from("output.png");
 
     // parse optional options
@@ -85,11 +88,14 @@ fn parse_args() -> Option<(u32, u32, u32, String)> {
     if matches.opt_present("s") {
         ns = matches.opt_str("s").unwrap().parse().unwrap();
     }
+    if matches.opt_present("r") {
+        random_seed = matches.opt_str("r").unwrap().parse().unwrap();
+    }
     if matches.opt_present("o") {
         output = matches.opt_str("o").unwrap();
     }
 
-    Some((nx, ny, ns, output))
+    Some((nx, ny, ns, random_seed, output))
 }
 
 fn create_scene() -> IntersectList {
@@ -161,8 +167,8 @@ fn create_scene() -> IntersectList {
 
 fn main() {
     // parse command-line arguments
-    let (nx, ny, ns, output) = match parse_args() {
-        Some((nx, ny, ns, output)) => (nx, ny, ns, output),
+    let (nx, ny, ns, random_seed, output) = match parse_args() {
+        Some((nx, ny, ns, random_seed, output)) => (nx, ny, ns, random_seed, output),
         None => return,
     };
 
@@ -170,7 +176,7 @@ fn main() {
     let mut image = Vec::with_capacity((3 * nx * ny) as usize);
 
     // initialize rng
-    let mut rng = rand::thread_rng();
+    let mut rng = rand_pcg::Pcg64::seed_from_u64(random_seed);
 
     // initialize world
     let world = create_scene();
@@ -199,8 +205,8 @@ fn main() {
             for _ in 0..ns {
                 let u = (i as f32 + rng.gen::<f32>()) / nx as f32;
                 let v = (j as f32 + rng.gen::<f32>()) / ny as f32;
-                let r = cam.point(u, v);
-                pixel += color(&r, &world, 0);
+                let r = cam.point(u, v, &mut rng);
+                pixel += color(&r, &world, 0, &mut rng);
             }
             pixel /= ns as f32;
             image.push((255.99 * pixel.x.sqrt()) as u8);
@@ -208,8 +214,7 @@ fn main() {
             image.push((255.99 * pixel.z.sqrt()) as u8);
         }
     }
-    image::save_buffer(output, &image, nx, ny, image::RGB(8))
-        .expect("error saving image");
+    image::save_buffer(output, &image, nx, ny, image::RGB(8)).expect("error saving image");
 
     pb.finish_and_clear();
 

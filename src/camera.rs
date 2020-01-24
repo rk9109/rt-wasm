@@ -1,13 +1,13 @@
 use std::f32;
 
-use rand::prelude::*;
+use rand::Rng;
+use rand_pcg;
 
 use crate::ray::Ray;
 use crate::vec::Vec3;
 
-pub fn random_point_in_disk() -> Vec3 {
+pub fn random_point_in_disk(rng: &mut rand_pcg::Pcg64) -> Vec3 {
     // return a random point inside the unit circle
-    let mut rng = rand::thread_rng();
     let unit = Vec3::new(1.0, 1.0, 0.0);
     loop {
         // select random points inside the unit square until a selected point
@@ -68,9 +68,9 @@ impl Camera {
         }
     }
 
-    pub fn point(&self, s: f32, t: f32) -> Ray {
+    pub fn point(&self, s: f32, t: f32, rng: &mut rand_pcg::Pcg64) -> Ray {
         // return ray from the origin to coordinate (s, t)
-        let rd = random_point_in_disk() * self.radius;
+        let rd = random_point_in_disk(rng) * self.radius;
         let offset = self.u * rd.x + self.v * rd.y;
         Ray::new(
             self.origin + offset,
