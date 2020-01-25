@@ -12,14 +12,12 @@ mod camera;
 mod intersect;
 mod material;
 mod ray;
+mod scenes;
 mod sphere;
 mod vec;
 
-use camera::Camera;
 use intersect::{IntersectEvent, IntersectList};
-use material::{Dielectric, Lambertian, Metal};
 use ray::Ray;
-use sphere::Sphere;
 use vec::Vec3;
 
 fn color(r: &Ray, world: &IntersectList, depth: u16, rng: &mut rand_pcg::Pcg64) -> Vec3 {
@@ -98,73 +96,6 @@ fn parse_args() -> Option<(u32, u32, u32, u64, String)> {
     Some((nx, ny, ns, random_seed, output))
 }
 
-fn create_scene() -> IntersectList {
-    let mut list: Vec<Box<dyn IntersectEvent>> = vec![];
-
-    // material options
-    let ground = Lambertian::new(Vec3::new(0.35, 0.35, 0.45));
-    let pink = Lambertian::new(Vec3::new(0.8, 0.4, 0.4));
-    let gold = Metal::new(0.0, Vec3::new(1.0, 0.8, 0.4));
-    let gold_rough = Metal::new(0.25, Vec3::new(1.0, 0.8, 0.4));
-    let silver = Metal::new(0.0, Vec3::new(0.8, 0.8, 0.8));
-    let silver_rough = Metal::new(0.25, Vec3::new(0.8, 0.8, 0.8));
-    let glass = Dielectric::new(1.5, 0.0, Vec3::new(0.8, 0.8, 0.8));
-    let glass_rough = Dielectric::new(1.5, 0.15, Vec3::new(0.8, 0.8, 0.8));
-
-    // create base
-    list.push(Box::new(Sphere::new(
-        Vec3::new(0.0, -1000.0, 0.0),
-        1000.0,
-        ground.clone(),
-    )));
-
-    // create large spheres
-    list.push(Box::new(Sphere::new(
-        Vec3::new(4.0, 0.5, 1.0),
-        0.5,
-        pink.clone(),
-    )));
-    list.push(Box::new(Sphere::new(
-        Vec3::new(3.0, 0.5, 0.25),
-        0.5,
-        silver.clone(),
-    )));
-    list.push(Box::new(Sphere::new(
-        Vec3::new(2.0, 0.5, -0.5),
-        0.5,
-        glass.clone(),
-    )));
-    list.push(Box::new(Sphere::new(
-        Vec3::new(4.0, 0.35, -1.15),
-        0.35,
-        gold.clone(),
-    )));
-
-    // create small spheres
-    list.push(Box::new(Sphere::new(
-        Vec3::new(5.0, 0.20, -0.8),
-        0.20,
-        glass_rough.clone(),
-    )));
-    list.push(Box::new(Sphere::new(
-        Vec3::new(4.2, 0.20, -0.6),
-        0.20,
-        glass_rough.clone(),
-    )));
-    list.push(Box::new(Sphere::new(
-        Vec3::new(5.4, 0.20, 0.55),
-        0.20,
-        gold_rough.clone(),
-    )));
-    list.push(Box::new(Sphere::new(
-        Vec3::new(5.0, 0.20, 0.25),
-        0.20,
-        silver_rough.clone(),
-    )));
-
-    IntersectList::new(list)
-}
-
 fn main() {
     // parse command-line arguments
     let (nx, ny, ns, random_seed, output) = match parse_args() {
@@ -178,19 +109,8 @@ fn main() {
     // initialize rng
     let mut rng = rand_pcg::Pcg64::seed_from_u64(random_seed);
 
-    // initialize world
-    let world = create_scene();
-
-    // initialize the camera
-    let cam = Camera::new(
-        Vec3::new(10.0, 1.0, 0.0),
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(0.0, 1.0, 0.0),
-        17.5,
-        nx as f32 / ny as f32,
-        0.1,
-        Vec3::new(5.5, 1.0, 0.0).length(),
-    );
+    // initialize world and camera
+    let (world, cam) = scenes::rtiow_scene(nx, ny, &mut rng);
 
     // initialize progress bar
     let pb = indicatif::ProgressBar::new((nx * ny) as u64);
