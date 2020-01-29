@@ -1,5 +1,5 @@
 [package]
-name = "rt-wasm"
+name = "rtwasm"
 version = "0.1.0"
 authors = ["Rinik Kumar <rk9109@gmail.com>"]
 edition = "2018"
@@ -10,6 +10,13 @@ rand_pcg = "0.2"
 image = "0.22.4"
 getopts = "0.2.21"
 indicatif = "0.13.0"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "rt_benchmark"
+harness = false
 
 [profile.dev]
 codegen-units = 8
