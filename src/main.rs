@@ -16,8 +16,10 @@ mod scenes;
 mod sphere;
 mod vec;
 
+use camera::Camera;
 use intersect::{IntersectEvent, IntersectList};
 use ray::Ray;
+use scenes::Params;
 use vec::Vec3;
 
 fn color(r: &Ray, world: &IntersectList, depth: u16, rng: &mut rand_pcg::Pcg64) -> Vec3 {
@@ -37,13 +39,8 @@ fn color(r: &Ray, world: &IntersectList, depth: u16, rng: &mut rand_pcg::Pcg64) 
     }
 }
 
-fn parse_args() -> Option<(u32, u32, u32, u64, String)> {
+fn parse_args() -> Option<Params> {
     // parse command-line arguments
-    // returns:
-    //   :nx:     x-dimension of image
-    //   :ny:     y-dimension of image
-    //   :ns:     number of samples per pixel
-    //   :output: output image filename
     let args: Vec<String> = env::args().collect();
 
     let mut opts = Options::new();
@@ -93,50 +90,75 @@ fn parse_args() -> Option<(u32, u32, u32, u64, String)> {
         output = matches.opt_str("o").unwrap();
     }
 
-    Some((nx, ny, ns, random_seed, output))
+    Some(Params::new(nx, ny, ns, random_seed, output))
+}
+
+pub fn cast(
+    params: &Params,
+    world: &IntersectList,
+    cam: &Camera,
+    rng: &mut rand_pcg::Pcg64,
+    create_image: bool,
+    create_pb: bool,
+) {
+    // initialize image
+    let mut image = Vec::with_capacity((3 * params.nx * params.ny) as usize);
+
+    // initialize progress bar
+    let pb = indicatif::ProgressBar::new((params.nx * params.ny) as u64);
+
+    for j in (0..params.ny).rev() {
+        for i in 0..params.nx {
+            if create_pb {
+                pb.inc(1);
+            }
+            let mut pixel = Vec3::new(0.0, 0.0, 0.0);
+            for _ in 0..params.ns {
+                let u = (i as f32 + rng.gen::<f32>()) / params.nx as f32;
+                let v = (j as f32 + rng.gen::<f32>()) / params.ny as f32;
+                let r = cam.point(u, v, rng);
+                pixel += color(&r, &world, 0, rng);
+            }
+            pixel /= params.ns as f32;
+            if create_image {
+                image.push((255.99 * pixel.x.sqrt()) as u8);
+                image.push((255.99 * pixel.y.sqrt()) as u8);
+                image.push((255.99 * pixel.z.sqrt()) as u8);
+            }
+        }
+    }
+    if create_image {
+        image::save_buffer(
+            params.output.clone(),
+            &image,
+            params.nx,
+            params.ny,
+            image::RGB(8),
+        )
+        .expect("error saving image");
+    }
+    if create_pb {
+        pb.finish_and_clear();
+    }
 }
 
 fn main() {
     // parse command-line arguments
-    let (nx, ny, ns, random_seed, output) = match parse_args() {
-        Some((nx, ny, ns, random_seed, output)) => (nx, ny, ns, random_seed, output),
+    let params = match parse_args() {
+        Some(params) => params,
         None => return,
     };
 
-    // initialize image
-    let mut image = Vec::with_capacity((3 * nx * ny) as usize);
-
     // initialize rng
-    let mut rng = rand_pcg::Pcg64::seed_from_u64(random_seed);
+    let mut rng = rand_pcg::Pcg64::seed_from_u64(params.random_seed);
 
     // initialize world and camera
-    let (world, cam) = scenes::rtiow_scene(nx, ny, &mut rng);
-
-    // initialize progress bar
-    let pb = indicatif::ProgressBar::new((nx * ny) as u64);
+    let (world, cam) = scenes::custom_scene(params.nx, params.ny);
 
     // initialize timer
     let start = time::Instant::now();
 
-    for j in (0..ny).rev() {
-        for i in 0..nx {
-            pb.inc(1);
-            let mut pixel = Vec3::new(0.0, 0.0, 0.0);
-            for _ in 0..ns {
-                let u = (i as f32 + rng.gen::<f32>()) / nx as f32;
-                let v = (j as f32 + rng.gen::<f32>()) / ny as f32;
-                let r = cam.point(u, v, &mut rng);
-                pixel += color(&r, &world, 0, &mut rng);
-            }
-            pixel /= ns as f32;
-            image.push((255.99 * pixel.x.sqrt()) as u8);
-            image.push((255.99 * pixel.y.sqrt()) as u8);
-            image.push((255.99 * pixel.z.sqrt()) as u8);
-        }
-    }
-    image::save_buffer(output, &image, nx, ny, image::RGB(8)).expect("error saving image");
-
-    pb.finish_and_clear();
+    cast(&params, &world, &cam, &mut rng, true, true);
 
     // print elapsed time
     let end = time::Instant::now();

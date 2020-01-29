@@ -7,6 +7,26 @@ use crate::material::{Dielectric, Lambertian, Metal};
 use crate::sphere::Sphere;
 use crate::vec::Vec3;
 
+pub struct Params {
+    pub nx: u32,
+    pub ny: u32,
+    pub ns: u32,
+    pub random_seed: u64,
+    pub output: String,
+}
+
+impl Params {
+    pub fn new(nx: u32, ny: u32, ns: u32, random_seed: u64, output: String) -> Params {
+        Params {
+            nx,
+            ny,
+            ns,
+            random_seed,
+            output,
+        }
+    }
+}
+
 #[allow(dead_code)]
 pub fn custom_scene(nx: u32, ny: u32) -> (IntersectList, Camera) {
     // scene used in the README
